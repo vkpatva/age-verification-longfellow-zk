@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDOC Wallet — Holder</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f6fa;
+    color: #1a1a2e;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #666;
+    font-size: 0.85rem;
+    margin-bottom: 32px;
+  }
+
+  .section {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 720px;
+    margin: 0 auto 24px;
+  }
+
+  .section h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    background: #e2e8f0;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #555;
+  }
+
+  /* Credential cards */
+  .cred-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #f8fafc;
+  }
+
+  .cred-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .cred-doctype {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #3b5bdb;
+    font-family: monospace;
+  }
+
+  .cred-dates {
+    font-size: 0.75rem;
+    color: #888;
+  }
+
+  .cred-fields {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .field-pill {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .field-true { background: #d3f9d8; color: #1a6b2a; }
+  .field-false { background: #ffe3e3; color: #c92a2a; }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px;
+    color: #aaa;
+    font-size: 0.9rem;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #cc3300;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .delete-btn:hover { background: #ffe3e3; }
+
+  /* Form elements */
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #444;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: monospace;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus { border-color: #3b5bdb; }
+
+  button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary { background: #3b5bdb; color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #2f4ac5; }
+
+  .btn-secondary { background: #e2e8f0; color: #333; }
+  .btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
+
+  .btn-success { background: #2f9e44; color: #fff; }
+  .btn-success:hover:not(:disabled) { background: #237032; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  /* Messages */
+  .msg {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+
+  .msg-info { background: #e7f5ff; color: #1864ab; border: 1px solid #a5d8ff; }
+  .msg-success { background: #d3f9d8; color: #1a6b2a; border: 1px solid #8ce99a; }
+  .msg-error { background: #ffe3e3; color: #c92a2a; border: 1px solid #ffa8a8; }
+  .msg-warn { background: #fff3bf; color: #7b4f00; border: 1px solid #ffe066; }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #cbd5e1;
+    border-top-color: #3b5bdb;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* OID4VP request details */
+  .request-details {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 14px;
+    font-size: 0.85rem;
+  }
+
+  .request-details table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .request-details td {
+    padding: 4px 8px;
+    vertical-align: top;
+  }
+
+  .request-details td:first-child {
+    font-weight: 600;
+    color: #555;
+    width: 140px;
+    white-space: nowrap;
+  }
+
+  .request-details td:last-child {
+    font-family: monospace;
+    font-size: 0.8rem;
+    word-break: break-all;
+  }
+
+  /* Checkbox group */
+  .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+  }
+
+  .checkbox-item input { width: 16px; height: 16px; cursor: pointer; }
+
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    margin-top: 10px;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  select:focus { border-color: #3b5bdb; }
+
+  .proof-status {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .proof-simulated { background: #fff3bf; color: #7b4f00; }
+  .proof-real { background: #d3f9d8; color: #1a6b2a; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 16px 0;
+  }
+
+  code {
+    font-family: monospace;
+    font-size: 0.82rem;
+    background: #f1f3f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>MDOC Wallet</h1>
+<p class="subtitle">OID4VCI · OID4VP · Longfellow ZK</p>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 1: Credential Store                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section" id="section-store">
+  <h2>
+    Credential Store
+    <span class="badge" id="cred-count">0</span>
+  </h2>
+  <div id="cred-list">
+    <div class="empty-state">No credentials stored. Add one below.</div>
+  </div>
+  <div class="btn-row">
+    <button class="btn-primary" onclick="openAddCredential()">+ Add Credential</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 2: Add Credential (OID4VCI)                    -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section" id="section-add">
+  <h2>Add Credential <span style="font-size:0.8rem;color:#888;font-weight:400;">OID4VCI</span></h2>
+
+  <label for="offer-uri">Paste credential_offer URI here</label>
+  <input type="text" id="offer-uri"
+    placeholder="openid-credential-offer://?credential_offer=..."
+    oninput="clearAddMessages()" />
+
+  <div id="add-msg"></div>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="btn-fetch-cred" onclick="fetchCredential()">Fetch Credential</button>
+    <button class="btn-secondary" onclick="clearAddSection()">Clear</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 3: Presentation (OID4VP)                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section" id="section-present">
+  <h2>Presentation <span style="font-size:0.8rem;color:#888;font-weight:400;">OID4VP</span></h2>
+
+  <label for="vp-uri">Paste OID4VP request URI here</label>
+  <input type="text" id="vp-uri"
+    placeholder="openid4vp://?client_id=...&nonce=...&response_uri=...&presentation_definition=..."
+    oninput="clearVpMessages()" />
+
+  <div id="vp-parse-result"></div>
+  <div id="vp-msg"></div>
+
+  <div class="btn-row">
+    <button class="btn-primary" onclick="parseVpRequest()">Parse Request</button>
+    <button class="btn-secondary" onclick="clearVpSection()">Clear</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+// Storage helpers
+// ─────────────────────────────────────────────────────────
+const STORAGE_KEY = 'mdoc_wallet_credentials';
+
+function loadCredentials() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveCredentials(creds) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(creds));
+}
+
+// ─────────────────────────────────────────────────────────
+// Utility
+// ─────────────────────────────────────────────────────────
+function uuid() {
+  return crypto.randomUUID ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+}
+
+function b64urlDecode(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  return atob(s);
+}
+
+function b64urlEncode(arr) {
+  let bin = '';
+  const bytes = new Uint8Array(arr);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function showMsg(id, html, type) {
+  document.getElementById(id).innerHTML = `<div class="msg msg-${type}">${html}</div>`;
+}
+
+function clearMsg(id) {
+  document.getElementById(id).innerHTML = '';
+}
+
+function setLoading(btnId, loading, text) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<span class="spinner"></span>${text}` : text;
+}
+
+// ─────────────────────────────────────────────────────────
+// Section 1: Render credential store
+// ─────────────────────────────────────────────────────────
+function renderCredentials() {
+  const creds = loadCredentials();
+  const list = document.getElementById('cred-list');
+  const count = document.getElementById('cred-count');
+  count.textContent = creds.length;
+
+  if (!creds.length) {
+    list.innerHTML = '<div class="empty-state">No credentials stored. Add one below.</div>';
+    return;
+  }
+
+  list.innerHTML = creds.map(c => {
+    const f = c.fields || {};
+    const fieldPills = ['age_above_18', 'age_above_21', 'age_above_25']
+      .map(k => {
+        const val = f[k];
+        const cls = val === true ? 'field-true' : val === false ? 'field-false' : '';
+        return `<span class="field-pill ${cls}">${k}: ${val !== undefined ? val : '—'}</span>`;
+      }).join('');
+
+    return `
+      <div class="cred-card">
+        <div class="cred-card-header">
+          <span class="cred-doctype">${c.doctype || 'org.iso.18013.5.1.age_verification'}</span>
+          <button class="delete-btn" onclick="deleteCredential('${c.id}')">Remove</button>
+        </div>
+        <div class="cred-dates">
+          Issued: ${f.issuance_date || '—'} &nbsp;|&nbsp; Expires: ${f.expiry_date || '—'}
+          ${f.issuer_country ? `&nbsp;|&nbsp; Country: ${f.issuer_country}` : ''}
+        </div>
+        <div class="cred-fields" style="margin-top:10px;">${fieldPills}</div>
+        <div style="margin-top:8px;font-size:0.72rem;color:#aaa;">
+          From: ${c.issuer_url || '—'} &nbsp;|&nbsp; Stored: ${new Date(c.stored_at).toLocaleString()}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function deleteCredential(id) {
+  const creds = loadCredentials().filter(c => c.id !== id);
+  saveCredentials(creds);
+  renderCredentials();
+}
+
+function openAddCredential() {
+  document.getElementById('section-add').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('offer-uri').focus();
+}
+
+// ─────────────────────────────────────────────────────────
+// Section 2: OID4VCI flow
+// ─────────────────────────────────────────────────────────
+function clearAddMessages() { clearMsg('add-msg'); }
+
+function clearAddSection() {
+  document.getElementById('offer-uri').value = '';
+  clearMsg('add-msg');
+  const btn = document.getElementById('btn-fetch-cred');
+  btn.disabled = false;
+  btn.textContent = 'Fetch Credential';
+}
+
+async function fetchCredential() {
+  const raw = document.getElementById('offer-uri').value.trim();
+  if (!raw) { showMsg('add-msg', 'Please paste a credential_offer URI.', 'error'); return; }
+
+  clearMsg('add-msg');
+  setLoading('btn-fetch-cred', true, 'Fetching…');
+
+  try {
+    // ── Step 1: Parse credential_offer URI ──────────────
+    let offerObj;
+    try {
+      offerObj = parseCredentialOfferUri(raw);
+    } catch (e) {
+      throw new Error('Invalid credential_offer URI: ' + e.message);
+    }
+
+    const { credential_issuer, pre_authorized_code } = offerObj;
+    if (!credential_issuer) throw new Error('Missing credential_issuer in offer');
+    if (!pre_authorized_code) throw new Error('Missing pre-authorized_code in offer');
+
+    showMsg('add-msg', `<span class="spinner"></span>Fetching issuer metadata from <code>${credential_issuer}</code>…`, 'info');
+
+    // ── Step 2: Fetch /.well-known/openid-credential-issuer ──
+    const metaResp = await fetch(`${credential_issuer}/.well-known/openid-credential-issuer`);
+    if (!metaResp.ok) throw new Error(`Issuer metadata fetch failed: ${metaResp.status}`);
+    const meta = await metaResp.json();
+
+    const tokenEndpoint = meta.token_endpoint || `${credential_issuer}/token`;
+    const credentialEndpoint = meta.credential_endpoint || `${credential_issuer}/credential`;
+
+    showMsg('add-msg', `<span class="spinner"></span>Requesting access token…`, 'info');
+
+    // ── Step 3: POST /token ──────────────────────────────
+    const tokenResp = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:pre-authorized_code',
+        'pre-authorized_code': pre_authorized_code
+      })
+    });
+    if (!tokenResp.ok) {
+      const t = await tokenResp.text();
+      throw new Error(`Token request failed (${tokenResp.status}): ${t}`);
+    }
+    const tokenData = await tokenResp.json();
+    const access_token = tokenData.access_token;
+    if (!access_token) throw new Error('No access_token in token response');
+
+    showMsg('add-msg', `<span class="spinner"></span>Requesting credential…`, 'info');
+
+    // ── Step 4: POST /credential ─────────────────────────
+    const credResp = await fetch(credentialEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${access_token}`
+      },
+      body: JSON.stringify({ format: 'mso_mdoc' })
+    });
+    if (!credResp.ok) {
+      const t = await credResp.text();
+      throw new Error(`Credential request failed (${credResp.status}): ${t}`);
+    }
+    const credData = await credResp.json();
+    const raw_mdoc_b64 = credData.credential;
+    if (!raw_mdoc_b64) throw new Error('No credential in response');
+
+    // ── Step 5: Parse MDOC fields ────────────────────────
+    const fields = parseMdocFields(raw_mdoc_b64, credData);
+
+    // ── Step 6: Store ────────────────────────────────────
+    const entry = {
+      id: uuid(),
+      raw_mdoc_b64,
+      doctype: credData.doctype || 'org.iso.18013.5.1.age_verification',
+      fields,
+      issuer_url: credential_issuer,
+      stored_at: new Date().toISOString()
+    };
+
+    const creds = loadCredentials();
+    creds.push(entry);
+    saveCredentials(creds);
+    renderCredentials();
+
+    showMsg('add-msg',
+      `Credential stored successfully.<br>
+       Fields: age_above_18=${fields.age_above_18}, age_above_21=${fields.age_above_21}, age_above_25=${fields.age_above_25}`,
+      'success');
+
+  } catch (e) {
+    showMsg('add-msg', `Error: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-fetch-cred', false, 'Fetch Credential');
+  }
+}
+
+function parseCredentialOfferUri(uri) {
+  // Handle openid-credential-offer://?credential_offer=<json>
+  // or openid-credential-offer://?credential_offer_uri=<url>
+  // or openid-credential-offer://?... with direct params
+  let queryStr;
+
+  if (uri.startsWith('openid-credential-offer://')) {
+    queryStr = uri.slice('openid-credential-offer://'.length);
+    if (queryStr.startsWith('?')) queryStr = queryStr.slice(1);
+    // handle host?query pattern
+    const qMark = uri.indexOf('?');
+    if (qMark !== -1) queryStr = uri.slice(qMark + 1);
+  } else if (uri.includes('?')) {
+    queryStr = uri.slice(uri.indexOf('?') + 1);
+  } else {
+    throw new Error('Unrecognized URI scheme');
+  }
+
+  const params = new URLSearchParams(queryStr);
+
+  // credential_offer param contains a JSON object
+  if (params.has('credential_offer')) {
+    const offer = JSON.parse(params.get('credential_offer'));
+    const credential_issuer = offer.credential_issuer;
+    const grants = offer.grants || {};
+    const preauth = grants['urn:ietf:params:oauth:grant-type:pre-authorized_code'] || {};
+    const pre_authorized_code = preauth['pre-authorized_code'];
+    return { credential_issuer, pre_authorized_code };
+  }
+
+  // Fallback: direct params
+  const credential_issuer = params.get('credential_issuer');
+  const pre_authorized_code = params.get('pre-authorized_code') || params.get('pre_authorized_code');
+  return { credential_issuer, pre_authorized_code };
+}
+
+function parseMdocFields(raw_mdoc_b64, credData) {
+  if (credData.age_fields) return credData.age_fields;
+  if (credData.fields) return credData.fields;
+  if (credData.claims) return credData.claims;
+  return {};
+}
+
+// ─────────────────────────────────────────────────────────
+// Section 3: OID4VP flow
+// ─────────────────────────────────────────────────────────
+let vpParsed = null;
+
+function clearVpMessages() {
+  clearMsg('vp-msg');
+}
+
+function clearVpSection() {
+  document.getElementById('vp-uri').value = '';
+  document.getElementById('vp-parse-result').innerHTML = '';
+  clearMsg('vp-msg');
+  vpParsed = null;
+}
+
+function parseVpRequest() {
+  const raw = document.getElementById('vp-uri').value.trim();
+  if (!raw) { showMsg('vp-msg', 'Please paste an OID4VP request URI.', 'error'); return; }
+
+  clearMsg('vp-msg');
+  document.getElementById('vp-parse-result').innerHTML = '';
+
+  try {
+    vpParsed = parseOid4vpUri(raw);
+  } catch (e) {
+    showMsg('vp-msg', 'Failed to parse OID4VP URI: ' + e.message, 'error');
+    return;
+  }
+
+  renderVpRequest(vpParsed);
+}
+
+function parseOid4vpUri(uri) {
+  let queryStr;
+  const qMark = uri.indexOf('?');
+  if (qMark === -1) throw new Error('No query string in URI');
+  queryStr = uri.slice(qMark + 1);
+
+  const params = new URLSearchParams(queryStr);
+
+  const client_id = params.get('client_id') || '';
+  const nonce = params.get('nonce') || '';
+  const response_uri = params.get('response_uri') || params.get('redirect_uri') || '';
+  const response_type = params.get('response_type') || 'vp_token';
+
+  let presentation_definition = null;
+  const pdRaw = params.get('presentation_definition');
+  if (pdRaw) {
+    try {
+      // Could be base64url or plain JSON
+      try {
+        presentation_definition = JSON.parse(pdRaw);
+      } catch {
+        presentation_definition = JSON.parse(b64urlDecode(pdRaw));
+      }
+    } catch (e) {
+      throw new Error('Cannot parse presentation_definition: ' + e.message);
+    }
+  }
+
+  if (!response_uri) throw new Error('Missing response_uri');
+  if (!nonce) throw new Error('Missing nonce');
+
+  return { client_id, nonce, response_uri, response_type, presentation_definition };
+}
+
+function getRequestedFields(pd) {
+  if (!pd) return [];
+  try {
+    const desc = pd.input_descriptors || [];
+    const fields = [];
+    for (const d of desc) {
+      const constraints = d.constraints || {};
+      for (const f of (constraints.fields || [])) {
+        // path like "$['org.iso.18013.5.1']['age_above_18']"
+        const pathStr = (f.path || [])[0] || '';
+        const match = pathStr.match(/\['([^']+)'\]\s*$/);
+        if (match) fields.push(match[1]);
+      }
+    }
+    return fields;
+  } catch { return []; }
+}
+
+function renderVpRequest(parsed) {
+  const container = document.getElementById('vp-parse-result');
+  const creds = loadCredentials();
+  const requestedFields = getRequestedFields(parsed.presentation_definition);
+
+  const credOptions = creds.length
+    ? creds.map((c, i) =>
+        `<option value="${c.id}">
+          [${i + 1}] ${c.doctype || 'age_verification'} — ${c.fields?.issuance_date || 'unknown date'} (${c.issuer_url || ''})
+        </option>`
+      ).join('')
+    : '<option value="">— No credentials stored —</option>';
+
+  const fieldCheckboxes = ['age_above_18', 'age_above_21', 'age_above_25'].map(f => {
+    const requested = requestedFields.includes(f);
+    const checked = requested ? 'checked' : '';
+    const label = requested ? `${f} <span style="color:#3b5bdb;font-size:0.75rem;">(requested)</span>` : f;
+    return `
+      <label class="checkbox-item">
+        <input type="checkbox" id="field-${f}" value="${f}" ${checked}>
+        ${label}
+      </label>`;
+  }).join('');
+
+  container.innerHTML = `
+    <hr class="divider">
+
+    <div class="request-details">
+      <strong style="display:block;margin-bottom:8px;">Verifier Request Details</strong>
+      <table>
+        <tr><td>Client ID</td><td>${parsed.client_id || '—'}</td></tr>
+        <tr><td>Nonce</td><td>${parsed.nonce}</td></tr>
+        <tr><td>Response URI</td><td>${parsed.response_uri}</td></tr>
+        <tr><td>Response Type</td><td>${parsed.response_type}</td></tr>
+        ${parsed.presentation_definition ? `<tr><td>Definition ID</td><td>${parsed.presentation_definition.id || '—'}</td></tr>` : ''}
+        ${requestedFields.length ? `<tr><td>Requested Fields</td><td>${requestedFields.join(', ')}</td></tr>` : ''}
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <label style="margin-top:4px;">Select credential to use:</label>
+    <select id="vp-cred-select">${credOptions}</select>
+
+    <p style="font-size:0.85rem;font-weight:600;margin-top:16px;margin-bottom:4px;">Fields to disclose:</p>
+    <div class="checkbox-group">
+      ${fieldCheckboxes}
+    </div>
+
+    <hr class="divider">
+
+    <p style="font-size:0.85rem;color:#555;margin-bottom:12px;">
+      Review the request above. Click <strong>Approve &amp; Generate Proof</strong> to consent and submit.
+    </p>
+
+    <div class="btn-row">
+      <button class="btn-success" id="btn-approve" onclick="approveAndSubmit()">Approve &amp; Generate Proof</button>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────
+// ZK Proof generation (Zenroom)
+// ─────────────────────────────────────────────────────────
+let zenroomModule = null; // holds { zencode_exec, zenroom_exec } once loaded
+
+async function tryLoadZenroom() {
+  if (zenroomModule) return true;
+  try {
+    zenroomModule = await import('https://cdn.jsdelivr.net/npm/zenroom/dist/web/index.js');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// STUB: replace with real Zenroom call when available
+function simulateProof(mdoc, attributes, nonce) {
+  // STUB: replace with real Zenroom call when available
+  const randomBytes = new Uint8Array(100);
+  crypto.getRandomValues(randomBytes);
+  return {
+    proof: b64urlEncode(randomBytes),
+    disclosed: attributes,
+    simulated: true
+  };
+}
+
+async function generateProof(rawMdocB64, attributes, nonce, numDisclosed) {
+  const loaded = await tryLoadZenroom();
+  if (!loaded) {
+    return simulateProof(rawMdocB64, attributes, nonce);
+  }
+
+  // Attempt real Zenroom / Longfellow call
+  try {
+    const circuitResp = await fetch(`/circuits/n${numDisclosed}.circuit`);
+    if (!circuitResp.ok) throw new Error('Circuit not found');
+    const circuitData = await circuitResp.text();
+
+    const { zencode_exec } = zenroomModule;
+
+    // Longfellow ZK prover script — replace script/data/keys with real values
+    // when the Longfellow zencode contract is available.
+    const result = await zencode_exec(circuitData, {
+      data: JSON.stringify({ mdoc: rawMdocB64, nonce, attributes }),
+      keys: null,
+    });
+
+    return {
+      proof: b64urlEncode(new TextEncoder().encode(result.result)),
+      disclosed: attributes,
+      simulated: false
+    };
+  } catch {
+    return simulateProof(rawMdocB64, attributes, nonce);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// Approve & submit
+// ─────────────────────────────────────────────────────────
+async function approveAndSubmit() {
+  if (!vpParsed) { showMsg('vp-msg', 'Parse the OID4VP URI first.', 'error'); return; }
+
+  const credId = document.getElementById('vp-cred-select')?.value;
+  if (!credId) { showMsg('vp-msg', 'No credential selected (store a credential first).', 'error'); return; }
+
+  const selectedFields = ['age_above_18', 'age_above_21', 'age_above_25']
+    .filter(f => document.getElementById(`field-${f}`)?.checked);
+
+  if (!selectedFields.length) { showMsg('vp-msg', 'Select at least one field to disclose.', 'error'); return; }
+
+  const creds = loadCredentials();
+  const cred = creds.find(c => c.id === credId);
+  if (!cred) { showMsg('vp-msg', 'Selected credential not found.', 'error'); return; }
+
+  setLoading('btn-approve', true, 'Generating proof…');
+  showMsg('vp-msg', '<span class="spinner"></span>Generating ZK proof…', 'info');
+
+  try {
+    const proofResult = await generateProof(
+      cred.raw_mdoc_b64,
+      selectedFields,
+      vpParsed.nonce,
+      selectedFields.length
+    );
+
+    showMsg('vp-msg', '<span class="spinner"></span>Submitting proof to verifier…', 'info');
+
+    const disclosed_attributes = {};
+    for (const f of selectedFields) {
+      disclosed_attributes[f] = cred.fields?.[f] ?? true;
+    }
+
+    const vpToken = {
+      format: 'mso_mdoc_zk',
+      doctype: cred.doctype || 'org.iso.18013.5.1.age_verification',
+      proof: proofResult.proof,
+      disclosed_attributes,
+      nonce: vpParsed.nonce,
+      simulated: proofResult.simulated === true
+    };
+
+    const presentationSubmission = {
+      id: uuid(),
+      definition_id: vpParsed.presentation_definition?.id || '',
+      descriptor_map: [{ id: 'age_credential', format: 'mso_mdoc_zk', path: '$.vp_token' }]
+    };
+
+    const submitResp = await fetch(vpParsed.response_uri, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vp_token: vpToken, presentation_submission: presentationSubmission })
+    });
+
+    if (!submitResp.ok) {
+      const t = await submitResp.text();
+      throw new Error(`Verifier rejected submission (${submitResp.status}): ${t}`);
+    }
+
+    const proofBadge = proofResult.simulated
+      ? '<div class="proof-status proof-simulated">&#9888; Simulated proof — Zenroom not loaded</div>'
+      : '<div class="proof-status proof-real">&#10003; Real ZK proof generated</div>';
+
+    const disclosedList = selectedFields
+      .map(f => `<li><strong>${f}</strong>: ${disclosed_attributes[f]}</li>`)
+      .join('');
+
+    showMsg('vp-msg',
+      `Proof submitted successfully.<br>
+       ${proofBadge}
+       <strong>Disclosed fields:</strong>
+       <ul style="margin-top:8px;padding-left:18px;">${disclosedList}</ul>`,
+      'success');
+
+  } catch (e) {
+    showMsg('vp-msg', `Submission failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-approve', false, 'Approve &amp; Generate Proof');
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────
+renderCredentials();
+</script>
+</body>
+</html>

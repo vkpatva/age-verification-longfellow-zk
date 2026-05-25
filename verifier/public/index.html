@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Age Verification — Verifier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #212529;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #1a1a2e;
+    }
+
+    .helper {
+      font-size: 0.83rem;
+      color: #6c757d;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      user-select: none;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #0d6efd;
+      cursor: pointer;
+    }
+
+    .checkbox-label .field-name {
+      font-family: monospace;
+      font-weight: 600;
+      background: #f1f3f5;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 0.88rem;
+    }
+
+    .checkbox-label .field-desc {
+      color: #6c757d;
+      font-size: 0.85rem;
+    }
+
+    .circuit-hint {
+      font-size: 0.83rem;
+      color: #495057;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 18px;
+    }
+
+    .circuit-hint.warn { color: #856404; background: #fff3cd; border-color: #ffc107; }
+    .circuit-hint.info { color: #0a3622; background: #d1e7dd; border-color: #a3cfbb; }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 22px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-primary {
+      background: #0d6efd;
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: #0b5ed7; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #e9ecef;
+      color: #495057;
+      font-size: 0.85rem;
+      padding: 7px 16px;
+    }
+
+    .btn-secondary:hover { background: #dee2e6; }
+
+    .uri-box {
+      font-family: monospace;
+      font-size: 0.75rem;
+      background: #f1f3f5;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 10px;
+      word-break: break-all;
+      margin-bottom: 14px;
+      max-height: 80px;
+      overflow-y: auto;
+      color: #495057;
+    }
+
+    .qr-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .qr-wrapper img {
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+    }
+
+    .qr-caption {
+      font-size: 0.82rem;
+      color: #6c757d;
+      margin-top: 8px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      padding: 8px 14px;
+      border-radius: 6px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      color: #495057;
+    }
+
+    .result-panel {
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+
+    .result-panel.success {
+      background: #d1e7dd;
+      border: 1px solid #a3cfbb;
+      color: #0a3622;
+    }
+
+    .result-panel.failure {
+      background: #f8d7da;
+      border: 1px solid #f1aeb5;
+      color: #58151c;
+    }
+
+    .result-panel h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .result-panel .proof-type {
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      opacity: 0.8;
+    }
+
+    .attr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-bottom: 10px;
+    }
+
+    .attr-table th {
+      text-align: left;
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.15);
+      font-weight: 600;
+    }
+
+    .attr-table td {
+      padding: 5px 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .timestamp {
+      font-size: 0.78rem;
+      opacity: 0.7;
+      margin-top: 8px;
+    }
+
+    .copy-btn {
+      font-size: 0.75rem;
+      background: none;
+      border: 1px solid #adb5bd;
+      border-radius: 4px;
+      padding: 2px 8px;
+      cursor: pointer;
+      color: #495057;
+    }
+
+    .copy-btn:hover { background: #e9ecef; }
+
+    .uri-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .uri-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #dee2e6;
+      margin: 18px 0;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #adb5bd;
+      border-top-color: #0d6efd;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/htm@3/dist/htm.js"></script>
+
+  <script>
+    const { useState, useEffect, useCallback, useRef } = React;
+    const html = htm.bind(React.createElement);
+
+    const FIELDS = [
+      { id: 'age_above_18', label: 'age_above_18', desc: 'prove holder is 18 or older' },
+      { id: 'age_above_21', label: 'age_above_21', desc: 'prove holder is 21 or older' },
+      { id: 'age_above_25', label: 'age_above_25', desc: 'prove holder is 25 or older' },
+    ];
+
+    function circuitHint(n) {
+      if (n === 0) return { text: 'Select at least one field', cls: 'warn' };
+      if (n === 1) return { text: 'Will use n=1 circuit — e.g. just age_above_18 OR just age_above_25', cls: 'info' };
+      if (n === 2) return { text: 'Will use n=2 circuit — both selected fields proven together', cls: 'info' };
+      return { text: 'Will use n=3 circuit — all three fields proven together', cls: 'info' };
+    }
+
+    function Step1({ onGenerate }) {
+      const [selected, setSelected] = useState(new Set());
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+
+      const toggle = (id) => {
+        setSelected(prev => {
+          const next = new Set(prev);
+          next.has(id) ? next.delete(id) : next.add(id);
+          return next;
+        });
+      };
+
+      const handle = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const res = await fetch('/create-request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields: [...selected] }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Request failed');
+          onGenerate(data);
+        } catch (e) {
+          setError(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const hint = circuitHint(selected.size);
+
+      return html`
+        <div class="card">
+          <h2>Step 1: Configure Request</h2>
+          <p class="helper">
+            Select which age claims to request proof of.<br/>
+            You can request any combination. Each selected field will be disclosed in the ZK proof.
+            The circuit is chosen automatically based on how many fields you select (n=1, n=2, or n=3).
+          </p>
+
+          <div class="checkbox-group">
+            ${FIELDS.map(f => html`
+              <label key=${f.id} class="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked=${selected.has(f.id)}
+                  onChange=${() => toggle(f.id)}
+                />
+                <span class="field-name">${f.label}</span>
+                <span class="field-desc">— ${f.desc}</span>
+              </label>
+            `)}
+          </div>
+
+          <div class=${'circuit-hint ' + hint.cls}>${hint.text}</div>
+
+          ${error && html`<p style="color:#dc3545;font-size:0.85rem;margin-bottom:12px;">${error}</p>`}
+
+          <button
+            class="btn btn-primary"
+            disabled=${selected.size === 0 || loading}
+            onClick=${handle}
+          >
+            ${loading ? 'Generating…' : 'Generate Verification Request'}
+          </button>
+        </div>
+      `;
+    }
+
+    function Step2({ request, onReset }) {
+      const [session, setSession] = useState(null);
+      const pollRef = useRef(null);
+
+      const poll = useCallback(async () => {
+        try {
+          const res = await fetch(`/session/${request.session_id}`);
+          const data = await res.json();
+          setSession(data);
+          if (data.status !== 'pending') {
+            clearInterval(pollRef.current);
+          }
+        } catch (_) {}
+      }, [request.session_id]);
+
+      useEffect(() => {
+        poll();
+        pollRef.current = setInterval(poll, 2000);
+        return () => clearInterval(pollRef.current);
+      }, [poll]);
+
+      const copyUri = () => {
+        navigator.clipboard.writeText(request.request_uri).catch(() => {});
+      };
+
+      const isDone = session && session.status !== 'pending';
+      const isSuccess = session && (session.status === 'verified_zk' || session.status === 'verified_simulated');
+      const isFailure = session && session.status === 'failed';
+
+      return html`
+        <div>
+          <div class="card">
+            <h2>Step 2: Share Request</h2>
+
+            <div class="uri-row">
+              <span class="uri-label">OID4VP URI</span>
+              <button class="copy-btn" onClick=${copyUri}>Copy</button>
+            </div>
+            <div class="uri-box">${request.request_uri}</div>
+
+            <div class="qr-wrapper">
+              <img src=${request.qr_code_data_url} alt="QR code" width="240" height="240" />
+              <span class="qr-caption">Scan with wallet or paste URI into wallet app</span>
+            </div>
+
+            <hr class="divider" />
+
+            ${!isDone && html`
+              <div class="status-badge">
+                <span class="spinner"></span>
+                Waiting for proof…
+              </div>
+            `}
+
+            ${isSuccess && html`
+              <div class="result-panel success">
+                <h3>✓ Age verification successful</h3>
+                <p class="proof-type">Proof type: ${session.proof_type}</p>
+                ${session.disclosed_attributes && Object.keys(session.disclosed_attributes).length > 0
+                  ? html`
+                    <table class="attr-table">
+                      <thead>
+                        <tr>
+                          <th>Attribute</th>
+                          <th>Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${Object.entries(session.disclosed_attributes).map(([k, v]) => html`
+                          <tr key=${k}>
+                            <td><code>${k}</code></td>
+                            <td>${String(v)}</td>
+                          </tr>
+                        `)}
+                      </tbody>
+                    </table>
+                  `
+                  : html`<p style="font-size:0.85rem;margin-bottom:8px;">No attribute values disclosed</p>`
+                }
+                <p class="timestamp">Verified at: ${new Date(session.verified_at).toLocaleString()}</p>
+              </div>
+            `}
+
+            ${isFailure && html`
+              <div class="result-panel failure">
+                <h3>✗ Verification failed</h3>
+                <p style="font-size:0.9rem;">${session.error || 'Unknown error'}</p>
+                <p class="timestamp">At: ${new Date(session.verified_at).toLocaleString()}</p>
+              </div>
+            `}
+          </div>
+
+          <button class="btn btn-secondary" onClick=${onReset}>← Start new request</button>
+        </div>
+      `;
+    }
+
+    function App() {
+      const [request, setRequest] = useState(null);
+
+      return html`
+        <div class="container">
+          <header>
+            <h1>Age Verification Demo — Verifier</h1>
+            <p>Longfellow ZK / MDOC / OID4VP</p>
+          </header>
+
+          ${!request
+            ? html`<${Step1} onGenerate=${setRequest} />`
+            : html`<${Step2} request=${request} onReset=${() => setRequest(null)} />`
+          }
+        </div>
+      `;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(html`<${App} />`);
+  </script>
+</body>
+</html>
