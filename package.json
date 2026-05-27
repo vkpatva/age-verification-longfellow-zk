@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --headed --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

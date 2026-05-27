@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MDOC Wallet — Holder</title>
+<script src="mdoc-lib-browser.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -766,25 +767,28 @@ function renderVpRequest(parsed) {
   const creds = loadCredentials();
   const { fields: requestedFields, requiredTrue } = getRequestedFields(parsed.presentation_definition);
 
+  // Preserve the previously selected credential across re-renders
+  const prevSelectedId = document.getElementById('vp-cred-select')?.value;
+  const selectedCred = creds.find(c => c.id === prevSelectedId) || creds[0];
+
   const credOptions = creds.length
     ? creds.map((c, i) =>
-        `<option value="${c.id}">
+        `<option value="${c.id}" ${c.id === selectedCred?.id ? 'selected' : ''}>
           [${i + 1}] ${c.doctype || 'age_verification'} — ${c.fields?.issuance_date || 'unknown date'} (${c.issuer_url || ''})
         </option>`
       ).join('')
     : '<option value="">— No credentials stored —</option>';
 
-  // Check if any selected credential fails the filter constraints
-  const firstCred = creds[0];
-  const failingFields = requiredTrue.size > 0 && firstCred
-    ? [...requiredTrue].filter(f => firstCred.fields?.[f] === false)
+  // Check if the selected credential fails the filter constraints
+  const failingFields = requiredTrue.size > 0 && selectedCred
+    ? [...requiredTrue].filter(f => selectedCred.fields?.[f] === false)
     : [];
 
   const fieldCheckboxes = ['age_above_18', 'age_above_21', 'age_above_25'].map(f => {
     const requested = requestedFields.includes(f);
     const mustBeTrue = requiredTrue.has(f);
     const checked = requested ? 'checked' : '';
-    const credVal = firstCred?.fields?.[f];
+    const credVal = selectedCred?.fields?.[f];
     const failsConstraint = mustBeTrue && credVal === false;
 
     let badges = '';
@@ -860,7 +864,57 @@ function rerenderFields() {
 }
 
 // ─────────────────────────────────────────────────────────
-// ZK Proof generation (server-side via verifier /generate-proof)
+// WASM loader — tries to load Longfellow from the verifier.
+// Sets window._lfModule once ready; null = unavailable.
+// ─────────────────────────────────────────────────────────
+window._lfModule = null;
+window._lfCircuitCache = {}; // { n: Uint8Array }
+
+async function loadLongfellowWasm() {
+  if (window._lfModule) return window._lfModule;
+  const verifierBase = window.LONGFELLOW_VERIFIER_BASE || 'http://localhost:3003';
+  try {
+    // Check the .js glue is available before injecting the script tag
+    const check = await fetch(`${verifierBase}/longfellow.js`, { method: 'HEAD' });
+    if (!check.ok) return null;
+
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = `${verifierBase}/longfellow.js`;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+
+    if (typeof LongfellowModule !== 'function') return null;
+
+    const mod = await LongfellowModule({
+      locateFile: (f) => `${verifierBase}/${f}`,
+    });
+    window._lfModule = mod;
+    return mod;
+  } catch (e) {
+    console.warn('Longfellow WASM unavailable:', e.message);
+    return null;
+  }
+}
+
+// Fetch + cache a circuit from the verifier (raw bytes, not JSON-wrapped).
+async function fetchCircuit(n) {
+  if (window._lfCircuitCache[n]) return window._lfCircuitCache[n];
+  const verifierBase = window.LONGFELLOW_VERIFIER_BASE || 'http://localhost:3003';
+  const resp = await fetch(`${verifierBase}/circuits/n${n}.circuit`);
+  if (!resp.ok) throw new Error(`Circuit n${n} not available (${resp.status})`);
+  const json = await resp.json();
+  // Circuit file is JSON: { circuit_data_base64: "...", ... }
+  if (!json.circuit_data_base64) throw new Error(`Circuit n${n} JSON has no circuit_data_base64`);
+  const bytes = MdocLib.b64urlToBytes(json.circuit_data_base64);
+  window._lfCircuitCache[n] = bytes;
+  return bytes;
+}
+
+// ─────────────────────────────────────────────────────────
+// ZK Proof generation — browser-first, server fallback
 // ─────────────────────────────────────────────────────────
 
 function b64urlToHex(s) {
@@ -870,8 +924,6 @@ function b64urlToHex(s) {
 async function generateProof(rawMdocB64, attributes, nonce, numDisclosed, binding) {
   const verifierBase = window.LONGFELLOW_VERIFIER_BASE || 'http://localhost:3003';
 
-  // Use the `presentation` path so the verifier builds a proper DeviceResponse
-  // (with deviceSigned) that the Longfellow WASM can parse.
   const presentation = {
     raw_mdoc_b64: rawMdocB64,
     device_private_jwk: binding && binding.devicePrivateJwk,
@@ -884,6 +936,39 @@ async function generateProof(rawMdocB64, attributes, nonce, numDisclosed, bindin
     time: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
   };
 
+  // ── Try client-side WASM path first ──────────────────────────────────────
+  const mod = await loadLongfellowWasm();
+  if (mod) {
+    try {
+      // Use the server to build the exact mdocInput (DeviceResponse CBOR +
+      // transcript + public key) so the bytes match what the native verifier
+      // expects.  Only the ZK proving step runs in the browser.
+      showMsg('vp-msg', '<span class="spinner"></span>Preparing proof inputs (server)…', 'info');
+      const prepResp = await fetch(`${verifierBase}/prepare-proof`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presentation }),
+      });
+      if (!prepResp.ok) {
+        const e = await prepResp.json().catch(() => ({}));
+        throw new Error(e.error || `prepare-proof failed (${prepResp.status})`);
+      }
+      const { mdoc_input: mdocInput } = await prepResp.json();
+
+      showMsg('vp-msg', `<span class="spinner"></span>Fetching circuit n${attributes.length}…`, 'info');
+      const circuitBytes = await fetchCircuit(attributes.length);
+
+      showMsg('vp-msg', '<span class="spinner"></span>Generating ZK proof in browser (this takes ~30s)…', 'info');
+      const proofJson = await MdocLib.wasmGenerateProof(mod, circuitBytes, mdocInput);
+      return { proof_json: proofJson, simulated: false, source: 'wasm' };
+    } catch (e) {
+      console.warn('Client-side WASM proof failed, falling back to server:', e.message);
+      showMsg('vp-msg', `<span class="spinner"></span>WASM failed (${e.message}), using server…`, 'warn');
+    }
+  }
+
+  // ── Fall back to server /generate-proof ──────────────────────────────────
+  showMsg('vp-msg', '<span class="spinner"></span>Generating ZK proof via server (this takes ~30s)…', 'info');
   const resp = await fetch(`${verifierBase}/generate-proof`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -897,7 +982,7 @@ async function generateProof(rawMdocB64, attributes, nonce, numDisclosed, bindin
   }
 
   const data = await resp.json();
-  return { proof_json: data.proof_json, simulated: false };
+  return { proof_json: data.proof_json, simulated: false, source: 'server' };
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1026,7 +1111,8 @@ async function approveAndSubmit() {
       throw new Error(`Verifier rejected submission (${submitResp.status}): ${t}`);
     }
 
-    const proofBadge = '<div class="proof-status proof-real">&#10003; Real ZK proof generated (Longfellow)</div>';
+    const proofSource = proofResult.source === 'wasm' ? 'client-side WASM' : 'server-side';
+    const proofBadge = `<div class="proof-status proof-real">&#10003; Real ZK proof generated (Longfellow · ${proofSource})</div>`;
 
     const disclosedList = selectedFields
       .map(f => `<li><strong>${f}</strong>: ${disclosed_attributes[f]}</li>`)

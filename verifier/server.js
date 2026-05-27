@@ -12,9 +12,8 @@ const fetch = nodeFetch.default || nodeFetch;
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
 
-// CORS: all origins
+// CORS: all origins — must be before express.static so static files also get the header
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -23,9 +22,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// WASM endpoint kept for backward compatibility — native CLI is used instead.
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve WASM build artifacts so the holder can run proof generation client-side.
+// Built by: cd verifier/longfellow-cli && bash build-wasm.sh
+const WASM_BUILD_DIR = path.join(__dirname, 'longfellow-cli', 'build-wasm');
+app.get('/longfellow.js', (req, res) => {
+  const p = path.join(WASM_BUILD_DIR, 'longfellow.js');
+  if (!fs.existsSync(p)) return res.status(404).json({ error: 'WASM not built — run build-wasm.sh' });
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(p);
+});
+app.get('/longfellow.wasm', (req, res) => {
+  const p = path.join(WASM_BUILD_DIR, 'longfellow.wasm');
+  if (!fs.existsSync(p)) return res.status(404).json({ error: 'WASM not built — run build-wasm.sh' });
+  res.setHeader('Content-Type', 'application/wasm');
+  res.sendFile(p);
+});
+// Legacy endpoint — keep for backward compat
 app.get('/longfellow-zk.wasm', (req, res) => {
-  res.status(404).json({ error: 'Native CLI used instead of WASM' });
+  res.redirect('/longfellow.wasm');
 });
 
 // Serve pre-generated circuits. Returns 404 if not yet primed — the holder
@@ -426,6 +442,21 @@ app.get('/session/:session_id', (req, res) => {
     return res.status(404).json({ error: 'Session not found' });
   }
   res.json(session);
+});
+
+// POST /prepare-proof
+// Builds the LongfellowInput (DeviceResponse + witness data) without running
+// the ZK prover. The holder calls this, then runs the WASM prover locally.
+app.post('/prepare-proof', async (req, res) => {
+  try {
+    const { presentation } = req.body;
+    if (!presentation) return res.status(400).json({ error: 'Missing presentation' });
+    const mdocInput = await buildLongfellowInput(presentation);
+    res.json({ mdoc_input: mdocInput });
+  } catch (e) {
+    console.error('prepare-proof error:', e);
+    res.status(400).json({ error: e.message });
+  }
 });
 
 // POST /generate-proof

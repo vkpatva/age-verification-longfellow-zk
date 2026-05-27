@@ -3,12 +3,18 @@ node_modules/
 npm-debug.log*
 .env
 
-# Build artifacts — binary is rebuilt from source, never commit it
+# Build artifacts — binaries are rebuilt from source
 verifier/longfellow-cli/build/
+verifier/longfellow-cli/build-wasm/
+verifier/longfellow-cli/deps-wasm/
 
-# Pre-generated circuits — large binary blobs (~95 MB each when loaded), regenerated on first use.
-# Uncomment to commit them and skip the ~5-min generation step on fresh clones.
-# verifier/circuits/*.circuit
+# Pre-generated circuits — large binary blobs (~95 MB each when loaded), regenerated on first use
+verifier/circuits/*.circuit
+
+# Playwright
+test-results/
+verifier/test-results/
+playwright-report/
 
 # Debug dumps
 /tmp/longfellow-debug/
