@@ -1,1 +1,20 @@
-node_modules
+# Node
+node_modules/
+npm-debug.log*
+.env
+
+# Build artifacts — binary is rebuilt from source, never commit it
+verifier/longfellow-cli/build/
+
+# Pre-generated circuits — large binary blobs (~95 MB each when loaded), regenerated on first use.
+# Uncomment to commit them and skip the ~5-min generation step on fresh clones.
+# verifier/circuits/*.circuit
+
+# Debug dumps
+/tmp/longfellow-debug/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/

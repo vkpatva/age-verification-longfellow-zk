@@ -15,26 +15,11 @@
       padding: 24px 16px;
     }
 
-    .container {
-      max-width: 640px;
-      margin: 0 auto;
-    }
+    .container { max-width: 640px; margin: 0 auto; }
 
-    header {
-      margin-bottom: 32px;
-    }
-
-    header h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #1a1a2e;
-    }
-
-    header p {
-      font-size: 0.85rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
+    header { margin-bottom: 32px; }
+    header h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; }
+    header p { font-size: 0.85rem; color: #6c757d; margin-top: 4px; }
 
     .card {
       background: #fff;
@@ -43,454 +28,347 @@
       padding: 24px;
       margin-bottom: 20px;
     }
+    .card h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #1a1a2e; }
 
-    .card h2 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #1a1a2e;
-    }
+    .helper { font-size: 0.83rem; color: #6c757d; margin-bottom: 16px; line-height: 1.5; }
 
-    .helper {
-      font-size: 0.83rem;
-      color: #6c757d;
-      margin-bottom: 16px;
-      line-height: 1.5;
-    }
+    .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95rem; user-select: none; }
+    .checkbox-label input { width: 17px; height: 17px; accent-color: #0d6efd; cursor: pointer; }
+    .field-name { font-family: monospace; font-weight: 600; background: #f1f3f5; padding: 1px 7px; border-radius: 4px; font-size: 0.88rem; }
+    .field-desc { color: #6c757d; font-size: 0.85rem; }
 
-    .checkbox-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      font-size: 0.95rem;
-      user-select: none;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-      width: 17px;
-      height: 17px;
-      accent-color: #0d6efd;
-      cursor: pointer;
-    }
-
-    .checkbox-label .field-name {
-      font-family: monospace;
-      font-weight: 600;
-      background: #f1f3f5;
-      padding: 1px 7px;
-      border-radius: 4px;
-      font-size: 0.88rem;
-    }
-
-    .checkbox-label .field-desc {
-      color: #6c757d;
-      font-size: 0.85rem;
-    }
-
-    .circuit-hint {
-      font-size: 0.83rem;
-      color: #495057;
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
-      border-radius: 6px;
-      padding: 8px 12px;
-      margin-bottom: 18px;
-    }
-
+    .circuit-hint { font-size: 0.83rem; color: #495057; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px 12px; margin-bottom: 18px; }
     .circuit-hint.warn { color: #856404; background: #fff3cd; border-color: #ffc107; }
     .circuit-hint.info { color: #0a3622; background: #d1e7dd; border-color: #a3cfbb; }
 
-    .btn {
-      display: inline-block;
-      padding: 10px 22px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      border: none;
-      border-radius: 7px;
-      cursor: pointer;
-      transition: background 0.15s, opacity 0.15s;
-    }
-
-    .btn-primary {
-      background: #0d6efd;
-      color: #fff;
-    }
-
+    .btn { display: inline-block; padding: 10px 22px; font-size: 0.95rem; font-weight: 500; border: none; border-radius: 7px; cursor: pointer; }
+    .btn-primary { background: #0d6efd; color: #fff; }
     .btn-primary:hover:not(:disabled) { background: #0b5ed7; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .btn-secondary {
-      background: #e9ecef;
-      color: #495057;
-      font-size: 0.85rem;
-      padding: 7px 16px;
-    }
-
+    .btn-secondary { background: #e9ecef; color: #495057; font-size: 0.85rem; padding: 7px 16px; }
     .btn-secondary:hover { background: #dee2e6; }
 
-    .uri-box {
-      font-family: monospace;
-      font-size: 0.75rem;
-      background: #f1f3f5;
-      border: 1px solid #dee2e6;
-      border-radius: 6px;
-      padding: 10px;
-      word-break: break-all;
-      margin-bottom: 14px;
-      max-height: 80px;
-      overflow-y: auto;
-      color: #495057;
-    }
+    .uri-box { font-family: monospace; font-size: 0.75rem; background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px; word-break: break-all; margin-bottom: 14px; max-height: 80px; overflow-y: auto; color: #495057; }
 
-    .qr-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 16px;
-    }
+    .qr-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; }
+    .qr-wrapper img { border: 1px solid #dee2e6; border-radius: 8px; }
+    .qr-caption { font-size: 0.82rem; color: #6c757d; margin-top: 8px; }
 
-    .qr-wrapper img {
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-    }
+    .divider { border: none; border-top: 1px solid #dee2e6; margin: 18px 0; }
 
-    .qr-caption {
-      font-size: 0.82rem;
-      color: #6c757d;
-      margin-top: 8px;
-    }
+    .msg { padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 14px; }
+    .msg-info { background: #cff4fc; color: #055160; border: 1px solid #9eeaf9; }
+    .msg-error { background: #f8d7da; color: #58151c; border: 1px solid #f1aeb5; }
 
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
-      padding: 8px 14px;
-      border-radius: 6px;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      color: #495057;
-    }
+    .result-card { border-radius: 10px; padding: 28px 24px; margin-bottom: 20px; }
+    .result-card.success { background: #d1e7dd; border: 1px solid #a3cfbb; color: #0a3622; }
+    .result-card.failure { background: #f8d7da; border: 1px solid #f1aeb5; color: #58151c; }
 
-    .result-panel {
-      border-radius: 8px;
-      padding: 18px 20px;
-    }
+    .result-icon { font-size: 3rem; text-align: center; margin-bottom: 10px; }
+    .result-title { font-size: 1.4rem; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .result-subtitle { font-size: 0.88rem; text-align: center; opacity: 0.75; margin-bottom: 16px; }
 
-    .result-panel.success {
-      background: #d1e7dd;
-      border: 1px solid #a3cfbb;
-      color: #0a3622;
-    }
+    .badge { display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; margin: 2px; }
+    .badge-zk { background: #0a3622; color: #d1e7dd; }
+    .badge-sim { background: #664d03; color: #fff3cd; }
+    .badge-device { background: #084298; color: #cfe2ff; }
+    .badge-row { text-align: center; margin-bottom: 16px; }
 
-    .result-panel.failure {
-      background: #f8d7da;
-      border: 1px solid #f1aeb5;
-      color: #58151c;
-    }
+    .attr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+    .attr-cell { background: rgba(0,0,0,0.06); border-radius: 8px; padding: 12px 14px; }
+    .attr-key { font-size: 0.78rem; font-family: monospace; opacity: 0.7; margin-bottom: 4px; }
+    .attr-val { font-size: 1.1rem; font-weight: 700; }
+    .val-true { color: #0a3622; }
+    .val-false { color: #842029; }
 
-    .result-panel h3 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
+    .meta { font-size: 0.8rem; opacity: 0.65; text-align: center; margin-top: 12px; }
 
-    .result-panel .proof-type {
-      font-size: 0.85rem;
-      margin-bottom: 12px;
-      opacity: 0.8;
-    }
-
-    .attr-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-      margin-bottom: 10px;
-    }
-
-    .attr-table th {
-      text-align: left;
-      padding: 6px 10px;
-      border-bottom: 1px solid rgba(0,0,0,0.15);
-      font-weight: 600;
-    }
-
-    .attr-table td {
-      padding: 5px 10px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-    }
-
-    .timestamp {
-      font-size: 0.78rem;
-      opacity: 0.7;
-      margin-top: 8px;
-    }
-
-    .copy-btn {
-      font-size: 0.75rem;
-      background: none;
-      border: 1px solid #adb5bd;
-      border-radius: 4px;
-      padding: 2px 8px;
-      cursor: pointer;
-      color: #495057;
-    }
-
+    .uri-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .uri-label { font-size: 0.82rem; font-weight: 600; color: #495057; }
+    .copy-btn { font-size: 0.75rem; background: none; border: 1px solid #adb5bd; border-radius: 4px; padding: 2px 8px; cursor: pointer; color: #495057; }
     .copy-btn:hover { background: #e9ecef; }
 
-    .uri-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .uri-label {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #495057;
-    }
-
-    .divider {
-      border: none;
-      border-top: 1px solid #dee2e6;
-      margin: 18px 0;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid #adb5bd;
-      border-top-color: #0d6efd;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
+<div class="container">
+  <header>
+    <h1>Age Verification Demo — Verifier</h1>
+    <p>Longfellow ZK / MDOC / OID4VP</p>
+  </header>
 
-  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/htm@3/dist/htm.js"></script>
+  <!-- Step 1: Configure -->
+  <div id="step1">
+    <div class="card">
+      <h2>Step 1: Configure Request</h2>
+      <p class="helper">Select which age claims to request proof of. The circuit is chosen automatically based on how many fields you select.</p>
 
-  <script>
-    const { useState, useEffect, useCallback, useRef } = React;
-    const html = htm.bind(React.createElement);
+      <div class="checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" value="age_above_18" onchange="updateHint()">
+          <span class="field-name">age_above_18</span>
+          <span class="field-desc">— prove holder is 18 or older</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" value="age_above_21" onchange="updateHint()">
+          <span class="field-name">age_above_21</span>
+          <span class="field-desc">— prove holder is 21 or older</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" value="age_above_25" onchange="updateHint()">
+          <span class="field-name">age_above_25</span>
+          <span class="field-desc">— prove holder is 25 or older</span>
+        </label>
+      </div>
 
-    const FIELDS = [
-      { id: 'age_above_18', label: 'age_above_18', desc: 'prove holder is 18 or older' },
-      { id: 'age_above_21', label: 'age_above_21', desc: 'prove holder is 21 or older' },
-      { id: 'age_above_25', label: 'age_above_25', desc: 'prove holder is 25 or older' },
-    ];
+      <div id="circuit-hint" class="circuit-hint warn">Select at least one field</div>
+      <div id="step1-error" class="msg msg-error hidden"></div>
 
-    function circuitHint(n) {
-      if (n === 0) return { text: 'Select at least one field', cls: 'warn' };
-      if (n === 1) return { text: 'Will use n=1 circuit — e.g. just age_above_18 OR just age_above_25', cls: 'info' };
-      if (n === 2) return { text: 'Will use n=2 circuit — both selected fields proven together', cls: 'info' };
-      return { text: 'Will use n=3 circuit — all three fields proven together', cls: 'info' };
+      <button class="btn btn-primary" id="btn-generate" disabled onclick="generateRequest()">
+        Generate Verification Request
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 2: Share & Check -->
+  <div id="step2" class="hidden">
+    <div class="card">
+      <h2>Step 2: Share Request</h2>
+
+      <div class="uri-row">
+        <span class="uri-label">OID4VP URI</span>
+        <button class="copy-btn" onclick="copyUri()">Copy</button>
+      </div>
+      <div class="uri-box" id="request-uri"></div>
+
+      <div class="qr-wrapper">
+        <img id="qr-img" src="" alt="QR code" width="240" height="240" />
+        <span class="qr-caption">Scan with wallet or paste URI into wallet app</span>
+      </div>
+
+      <hr class="divider">
+
+      <p style="font-size:0.85rem;color:#6c757d;margin-bottom:14px;">
+        After submitting the proof from the Holder wallet, click below to see the result.
+      </p>
+
+      <div id="step2-msg" class="hidden"></div>
+
+      <button class="btn btn-primary" id="btn-check" onclick="checkStatus()">
+        Check Verification Status
+      </button>
+    </div>
+    <button class="btn btn-secondary" onclick="reset()" style="margin-top:4px;">← Cancel</button>
+  </div>
+
+  <!-- Step 3: Result -->
+  <div id="step3" class="hidden">
+    <div id="result-card" class="result-card">
+      <div class="result-icon" id="result-icon"></div>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-subtitle" id="result-subtitle"></div>
+      <div class="badge-row" id="result-badges"></div>
+      <div id="result-error" class="hidden" style="text-align:center;font-size:0.9rem;margin-bottom:10px;"></div>
+      <hr class="divider" id="result-divider" style="display:none;">
+      <div class="attr-grid" id="result-attrs"></div>
+      <div class="meta" id="result-meta"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="reset()">← Start new request</button>
+  </div>
+</div>
+
+<script>
+  var sessionId = null;
+  var requestUri = null;
+
+  function getChecked() {
+    return Array.from(document.querySelectorAll('#step1 input[type=checkbox]:checked'))
+      .map(cb => cb.value);
+  }
+
+  function updateHint() {
+    var n = getChecked().length;
+    var hint = document.getElementById('circuit-hint');
+    var btn = document.getElementById('btn-generate');
+    btn.disabled = n === 0;
+    if (n === 0) {
+      hint.className = 'circuit-hint warn';
+      hint.textContent = 'Select at least one field';
+    } else if (n === 1) {
+      hint.className = 'circuit-hint info';
+      hint.textContent = 'Will use n=1 circuit';
+    } else if (n === 2) {
+      hint.className = 'circuit-hint info';
+      hint.textContent = 'Will use n=2 circuit — both fields proven together';
+    } else {
+      hint.className = 'circuit-hint info';
+      hint.textContent = 'Will use n=3 circuit — all three fields proven together';
+    }
+  }
+
+  function copyUri() {
+    if (requestUri) navigator.clipboard.writeText(requestUri).catch(function(){});
+  }
+
+  function showStep(n) {
+    document.getElementById('step1').className = n === 1 ? '' : 'hidden';
+    document.getElementById('step2').className = n === 2 ? '' : 'hidden';
+    document.getElementById('step3').className = n === 3 ? '' : 'hidden';
+  }
+
+  function reset() {
+    sessionId = null;
+    requestUri = null;
+    document.querySelectorAll('#step1 input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+    document.getElementById('btn-generate').disabled = true;
+    document.getElementById('circuit-hint').className = 'circuit-hint warn';
+    document.getElementById('circuit-hint').textContent = 'Select at least one field';
+    document.getElementById('step1-error').className = 'msg msg-error hidden';
+    document.getElementById('step2-msg').className = 'hidden';
+    document.getElementById('btn-generate').textContent = 'Generate Verification Request';
+    document.getElementById('btn-check').disabled = false;
+    document.getElementById('btn-check').textContent = 'Check Verification Status';
+    showStep(1);
+  }
+
+  async function generateRequest() {
+    var fields = getChecked();
+    if (!fields.length) return;
+
+    var btn = document.getElementById('btn-generate');
+    var errEl = document.getElementById('step1-error');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    errEl.className = 'msg msg-error hidden';
+
+    try {
+      var res = await fetch('/create-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: fields })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+
+      sessionId = data.session_id;
+      requestUri = data.request_uri;
+
+      document.getElementById('request-uri').textContent = data.request_uri;
+      document.getElementById('qr-img').src = data.qr_code_data_url;
+      document.getElementById('step2-msg').className = 'hidden';
+      showStep(2);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.className = 'msg msg-error';
+      btn.disabled = false;
+      btn.textContent = 'Generate Verification Request';
+    }
+  }
+
+  async function checkStatus() {
+    if (!sessionId) return;
+
+    var btn = document.getElementById('btn-check');
+    var msgEl = document.getElementById('step2-msg');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    msgEl.className = 'hidden';
+
+    try {
+      var res = await fetch('/session/' + sessionId);
+      var data = await res.json();
+
+      if (!res.ok) {
+        showMsg('step2-msg', 'error', data.error || 'Session not found');
+      } else if (data.status === 'pending') {
+        showMsg('step2-msg', 'info', 'Proof not yet received — submit from the Holder wallet first.');
+      } else {
+        showResult(data);
+      }
+    } catch (e) {
+      showMsg('step2-msg', 'error', 'Network error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Check Verification Status';
+    }
+  }
+
+  function showMsg(id, type, text) {
+    var el = document.getElementById(id);
+    el.className = 'msg msg-' + type;
+    el.textContent = text;
+  }
+
+  function showResult(session) {
+    var isSuccess = session.status === 'verified_zk' ||
+      session.status === 'verified_simulated' ||
+      session.status === 'verified_device_binding_only';
+
+    var icon = session.status === 'verified_zk' ? '✅'
+      : session.status === 'verified_simulated' ? '⚠️'
+      : isSuccess ? '🔑' : '❌';
+
+    var title = session.status === 'verified_zk' ? 'ZK Proof Verified'
+      : session.status === 'verified_simulated' ? 'Verified (Simulated Proof)'
+      : session.status === 'verified_device_binding_only' ? 'Verified (Device Binding Only)'
+      : 'Verification Failed';
+
+    var card = document.getElementById('result-card');
+    card.className = 'result-card ' + (isSuccess ? 'success' : 'failure');
+
+    document.getElementById('result-icon').textContent = icon;
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-subtitle').textContent = session.proof_type || '';
+
+    // Badges
+    var badgeRow = document.getElementById('result-badges');
+    badgeRow.innerHTML = '';
+    if (isSuccess) {
+      var cls = session.status === 'verified_zk' ? 'badge-zk'
+        : session.status === 'verified_simulated' ? 'badge-sim' : 'badge-device';
+      var label = session.status === 'verified_zk' ? 'Longfellow ZK'
+        : session.status === 'verified_simulated' ? 'Simulated' : 'Device Binding';
+      badgeRow.innerHTML += '<span class="badge ' + cls + '">' + label + '</span>';
+    }
+    if (session.device_binding_verified === true) {
+      badgeRow.innerHTML += '<span class="badge badge-device">Device key verified</span>';
     }
 
-    function Step1({ onGenerate }) {
-      const [selected, setSelected] = useState(new Set());
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState(null);
-
-      const toggle = (id) => {
-        setSelected(prev => {
-          const next = new Set(prev);
-          next.has(id) ? next.delete(id) : next.add(id);
-          return next;
-        });
-      };
-
-      const handle = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const res = await fetch('/create-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fields: [...selected] }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Request failed');
-          onGenerate(data);
-        } catch (e) {
-          setError(e.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      const hint = circuitHint(selected.size);
-
-      return html`
-        <div class="card">
-          <h2>Step 1: Configure Request</h2>
-          <p class="helper">
-            Select which age claims to request proof of.<br/>
-            You can request any combination. Each selected field will be disclosed in the ZK proof.
-            The circuit is chosen automatically based on how many fields you select (n=1, n=2, or n=3).
-          </p>
-
-          <div class="checkbox-group">
-            ${FIELDS.map(f => html`
-              <label key=${f.id} class="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked=${selected.has(f.id)}
-                  onChange=${() => toggle(f.id)}
-                />
-                <span class="field-name">${f.label}</span>
-                <span class="field-desc">— ${f.desc}</span>
-              </label>
-            `)}
-          </div>
-
-          <div class=${'circuit-hint ' + hint.cls}>${hint.text}</div>
-
-          ${error && html`<p style="color:#dc3545;font-size:0.85rem;margin-bottom:12px;">${error}</p>`}
-
-          <button
-            class="btn btn-primary"
-            disabled=${selected.size === 0 || loading}
-            onClick=${handle}
-          >
-            ${loading ? 'Generating…' : 'Generate Verification Request'}
-          </button>
-        </div>
-      `;
+    // Error message
+    var errEl = document.getElementById('result-error');
+    if (!isSuccess && session.error) {
+      errEl.textContent = session.error;
+      errEl.className = '';
+    } else {
+      errEl.className = 'hidden';
     }
 
-    function Step2({ request, onReset }) {
-      const [session, setSession] = useState(null);
-      const pollRef = useRef(null);
-
-      const poll = useCallback(async () => {
-        try {
-          const res = await fetch(`/session/${request.session_id}`);
-          const data = await res.json();
-          setSession(data);
-          if (data.status !== 'pending') {
-            clearInterval(pollRef.current);
-          }
-        } catch (_) {}
-      }, [request.session_id]);
-
-      useEffect(() => {
-        poll();
-        pollRef.current = setInterval(poll, 2000);
-        return () => clearInterval(pollRef.current);
-      }, [poll]);
-
-      const copyUri = () => {
-        navigator.clipboard.writeText(request.request_uri).catch(() => {});
-      };
-
-      const isDone = session && session.status !== 'pending';
-      const isSuccess = session && (session.status === 'verified_zk' || session.status === 'verified_simulated');
-      const isFailure = session && session.status === 'failed';
-
-      return html`
-        <div>
-          <div class="card">
-            <h2>Step 2: Share Request</h2>
-
-            <div class="uri-row">
-              <span class="uri-label">OID4VP URI</span>
-              <button class="copy-btn" onClick=${copyUri}>Copy</button>
-            </div>
-            <div class="uri-box">${request.request_uri}</div>
-
-            <div class="qr-wrapper">
-              <img src=${request.qr_code_data_url} alt="QR code" width="240" height="240" />
-              <span class="qr-caption">Scan with wallet or paste URI into wallet app</span>
-            </div>
-
-            <hr class="divider" />
-
-            ${!isDone && html`
-              <div class="status-badge">
-                <span class="spinner"></span>
-                Waiting for proof…
-              </div>
-            `}
-
-            ${isSuccess && html`
-              <div class="result-panel success">
-                <h3>✓ Age verification successful</h3>
-                <p class="proof-type">Proof type: ${session.proof_type}</p>
-                ${session.disclosed_attributes && Object.keys(session.disclosed_attributes).length > 0
-                  ? html`
-                    <table class="attr-table">
-                      <thead>
-                        <tr>
-                          <th>Attribute</th>
-                          <th>Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        ${Object.entries(session.disclosed_attributes).map(([k, v]) => html`
-                          <tr key=${k}>
-                            <td><code>${k}</code></td>
-                            <td>${String(v)}</td>
-                          </tr>
-                        `)}
-                      </tbody>
-                    </table>
-                  `
-                  : html`<p style="font-size:0.85rem;margin-bottom:8px;">No attribute values disclosed</p>`
-                }
-                <p class="timestamp">Verified at: ${new Date(session.verified_at).toLocaleString()}</p>
-              </div>
-            `}
-
-            ${isFailure && html`
-              <div class="result-panel failure">
-                <h3>✗ Verification failed</h3>
-                <p style="font-size:0.9rem;">${session.error || 'Unknown error'}</p>
-                <p class="timestamp">At: ${new Date(session.verified_at).toLocaleString()}</p>
-              </div>
-            `}
-          </div>
-
-          <button class="btn btn-secondary" onClick=${onReset}>← Start new request</button>
-        </div>
-      `;
+    // Attributes
+    var attrs = document.getElementById('result-attrs');
+    var divider = document.getElementById('result-divider');
+    var disclosed = session.disclosed_attributes;
+    if (disclosed && typeof disclosed === 'object' && disclosed !== null && Object.keys(disclosed).length > 0) {
+      divider.style.display = '';
+      attrs.innerHTML = Object.entries(disclosed).map(function(entry) {
+        var k = entry[0], v = entry[1];
+        var valClass = v === true ? 'val-true' : v === false ? 'val-false' : '';
+        var valText = v === true ? 'true' : v === false ? 'false' : String(v);
+        return '<div class="attr-cell"><div class="attr-key">' + k + '</div><div class="attr-val ' + valClass + '">' + valText + '</div></div>';
+      }).join('');
+    } else {
+      divider.style.display = 'none';
+      attrs.innerHTML = '';
     }
 
-    function App() {
-      const [request, setRequest] = useState(null);
+    // Meta
+    var meta = document.getElementById('result-meta');
+    meta.textContent = 'Session: ' + session.session_id +
+      (session.verified_at ? ' · ' + new Date(session.verified_at).toLocaleString() : '');
 
-      return html`
-        <div class="container">
-          <header>
-            <h1>Age Verification Demo — Verifier</h1>
-            <p>Longfellow ZK / MDOC / OID4VP</p>
-          </header>
-
-          ${!request
-            ? html`<${Step1} onGenerate=${setRequest} />`
-            : html`<${Step2} request=${request} onReset=${() => setRequest(null)} />`
-          }
-        </div>
-      `;
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(html`<${App} />`);
-  </script>
+    showStep(3);
+  }
+</script>
 </body>
 </html>

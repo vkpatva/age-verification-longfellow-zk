@@ -402,6 +402,56 @@ function setLoading(btnId, loading, text) {
   btn.innerHTML = loading ? `<span class="spinner"></span>${text}` : text;
 }
 
+function hexFromBytes(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function bytesFromB64Url(s) {
+  const bin = b64urlDecode(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────
+// Device key management
+// ─────────────────────────────────────────────────────────
+// Each credential is bound to a P-256 device key. The private JWK is stored
+// in localStorage alongside the credential entry; in production this should
+// live in a non-extractable WebCrypto / hardware-backed store.
+
+async function generateDeviceKeyPair() {
+  const kp = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    true,
+    ['sign', 'verify']
+  );
+  const privateJwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  const publicJwk = await crypto.subtle.exportKey('jwk', kp.publicKey);
+  return { privateJwk, publicJwk };
+}
+
+async function importDevicePrivateKey(privateJwk) {
+  return crypto.subtle.importKey(
+    'jwk',
+    privateJwk,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign']
+  );
+}
+
+async function signTranscriptWithDeviceKey(privateJwk, transcriptBytes) {
+  const key = await importDevicePrivateKey(privateJwk);
+  // ECDSA produces IEEE-P1363 (r||s) output via WebCrypto.
+  const sig = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    key,
+    transcriptBytes
+  );
+  return new Uint8Array(sig);
+}
+
 // ─────────────────────────────────────────────────────────
 // Section 1: Render credential store
 // ─────────────────────────────────────────────────────────
@@ -517,6 +567,11 @@ async function fetchCredential() {
     const access_token = tokenData.access_token;
     if (!access_token) throw new Error('No access_token in token response');
 
+    showMsg('add-msg', `<span class="spinner"></span>Generating device key…`, 'info');
+
+    // ── Step 3.5: Generate device key pair (bound to this credential) ──
+    const deviceKey = await generateDeviceKeyPair();
+
     showMsg('add-msg', `<span class="spinner"></span>Requesting credential…`, 'info');
 
     // ── Step 4: POST /credential ─────────────────────────
@@ -526,7 +581,10 @@ async function fetchCredential() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${access_token}`
       },
-      body: JSON.stringify({ format: 'mso_mdoc' })
+      body: JSON.stringify({
+        format: 'mso_mdoc',
+        device_public_key_jwk: deviceKey.publicJwk
+      })
     });
     if (!credResp.ok) {
       const t = await credResp.text();
@@ -546,6 +604,8 @@ async function fetchCredential() {
       doctype: credData.doctype || 'org.iso.18013.5.1.age_verification',
       fields,
       issuer_url: credential_issuer,
+      device_private_jwk: deviceKey.privateJwk,
+      device_public_jwk: deviceKey.publicJwk,
       stored_at: new Date().toISOString()
     };
 
@@ -677,27 +737,34 @@ function parseOid4vpUri(uri) {
 }
 
 function getRequestedFields(pd) {
-  if (!pd) return [];
+  if (!pd) return { fields: [], requiredTrue: new Set() };
   try {
     const desc = pd.input_descriptors || [];
     const fields = [];
+    const requiredTrue = new Set();
     for (const d of desc) {
       const constraints = d.constraints || {};
       for (const f of (constraints.fields || [])) {
-        // path like "$['org.iso.18013.5.1']['age_above_18']"
         const pathStr = (f.path || [])[0] || '';
         const match = pathStr.match(/\['([^']+)'\]\s*$/);
-        if (match) fields.push(match[1]);
+        if (match) {
+          const name = match[1];
+          fields.push(name);
+          // DIF PE filter: { type: "boolean", const: true } means verifier requires true
+          if (f.filter && f.filter.type === 'boolean' && f.filter.const === true) {
+            requiredTrue.add(name);
+          }
+        }
       }
     }
-    return fields;
-  } catch { return []; }
+    return { fields, requiredTrue };
+  } catch { return { fields: [], requiredTrue: new Set() }; }
 }
 
 function renderVpRequest(parsed) {
   const container = document.getElementById('vp-parse-result');
   const creds = loadCredentials();
-  const requestedFields = getRequestedFields(parsed.presentation_definition);
+  const { fields: requestedFields, requiredTrue } = getRequestedFields(parsed.presentation_definition);
 
   const credOptions = creds.length
     ? creds.map((c, i) =>
@@ -707,16 +774,44 @@ function renderVpRequest(parsed) {
       ).join('')
     : '<option value="">— No credentials stored —</option>';
 
+  // Check if any selected credential fails the filter constraints
+  const firstCred = creds[0];
+  const failingFields = requiredTrue.size > 0 && firstCred
+    ? [...requiredTrue].filter(f => firstCred.fields?.[f] === false)
+    : [];
+
   const fieldCheckboxes = ['age_above_18', 'age_above_21', 'age_above_25'].map(f => {
     const requested = requestedFields.includes(f);
+    const mustBeTrue = requiredTrue.has(f);
     const checked = requested ? 'checked' : '';
-    const label = requested ? `${f} <span style="color:#3b5bdb;font-size:0.75rem;">(requested)</span>` : f;
+    const credVal = firstCred?.fields?.[f];
+    const failsConstraint = mustBeTrue && credVal === false;
+
+    let badges = '';
+    if (mustBeTrue) {
+      badges += ` <span style="background:#d3f9d8;color:#1a6b2a;border-radius:999px;padding:1px 8px;font-size:0.72rem;font-weight:600;">required: true</span>`;
+    }
+    if (failsConstraint) {
+      badges += ` <span style="background:#ffe3e3;color:#c92a2a;border-radius:999px;padding:1px 8px;font-size:0.72rem;font-weight:600;">credential has false ✗</span>`;
+    } else if (requested && credVal !== undefined) {
+      const valColor = credVal === true ? '#1a6b2a' : '#c92a2a';
+      badges += ` <span style="color:${valColor};font-size:0.78rem;font-weight:600;">= ${credVal}</span>`;
+    }
+
     return `
-      <label class="checkbox-item">
-        <input type="checkbox" id="field-${f}" value="${f}" ${checked}>
-        ${label}
+      <label class="checkbox-item" style="${failsConstraint ? 'opacity:0.7;' : ''}">
+        <input type="checkbox" id="field-${f}" value="${f}" ${checked} ${failsConstraint ? 'disabled' : ''}>
+        ${f}${badges}
       </label>`;
   }).join('');
+
+  const preflightBanner = failingFields.length > 0
+    ? `<div class="msg msg-error" style="margin-top:12px;">
+        <strong>Cannot submit:</strong> Your credential has <strong>${failingFields.join(', ')}</strong> = false,
+        but the verifier requires these to be true (DIF PE filter: const=true).
+        This presentation will be rejected.
+       </div>`
+    : '';
 
   container.innerHTML = `
     <hr class="divider">
@@ -730,18 +825,21 @@ function renderVpRequest(parsed) {
         <tr><td>Response Type</td><td>${parsed.response_type}</td></tr>
         ${parsed.presentation_definition ? `<tr><td>Definition ID</td><td>${parsed.presentation_definition.id || '—'}</td></tr>` : ''}
         ${requestedFields.length ? `<tr><td>Requested Fields</td><td>${requestedFields.join(', ')}</td></tr>` : ''}
+        ${requiredTrue.size ? `<tr><td>Required = true</td><td style="color:#1a6b2a;font-weight:600;">${[...requiredTrue].join(', ')}</td></tr>` : ''}
       </table>
     </div>
 
     <hr class="divider">
 
     <label style="margin-top:4px;">Select credential to use:</label>
-    <select id="vp-cred-select">${credOptions}</select>
+    <select id="vp-cred-select" onchange="rerenderFields()">${credOptions}</select>
 
     <p style="font-size:0.85rem;font-weight:600;margin-top:16px;margin-bottom:4px;">Fields to disclose:</p>
     <div class="checkbox-group">
       ${fieldCheckboxes}
     </div>
+
+    ${preflightBanner}
 
     <hr class="divider">
 
@@ -750,67 +848,56 @@ function renderVpRequest(parsed) {
     </p>
 
     <div class="btn-row">
-      <button class="btn-success" id="btn-approve" onclick="approveAndSubmit()">Approve &amp; Generate Proof</button>
+      <button class="btn-success" id="btn-approve" onclick="approveAndSubmit()" ${failingFields.length > 0 ? 'disabled title="Credential does not satisfy verifier constraints"' : ''}>
+        Approve &amp; Generate Proof
+      </button>
     </div>
   `;
 }
 
-// ─────────────────────────────────────────────────────────
-// ZK Proof generation (Zenroom)
-// ─────────────────────────────────────────────────────────
-let zenroomModule = null; // holds { zencode_exec, zenroom_exec } once loaded
-
-async function tryLoadZenroom() {
-  if (zenroomModule) return true;
-  try {
-    zenroomModule = await import('https://cdn.jsdelivr.net/npm/zenroom/dist/web/index.js');
-    return true;
-  } catch {
-    return false;
-  }
+function rerenderFields() {
+  if (vpParsed) renderVpRequest(vpParsed);
 }
 
-// STUB: replace with real Zenroom call when available
-function simulateProof(mdoc, attributes, nonce) {
-  // STUB: replace with real Zenroom call when available
-  const randomBytes = new Uint8Array(100);
-  crypto.getRandomValues(randomBytes);
-  return {
-    proof: b64urlEncode(randomBytes),
-    disclosed: attributes,
-    simulated: true
+// ─────────────────────────────────────────────────────────
+// ZK Proof generation (server-side via verifier /generate-proof)
+// ─────────────────────────────────────────────────────────
+
+function b64urlToHex(s) {
+  return hexFromBytes(bytesFromB64Url(s));
+}
+
+async function generateProof(rawMdocB64, attributes, nonce, numDisclosed, binding) {
+  const verifierBase = window.LONGFELLOW_VERIFIER_BASE || 'http://localhost:3003';
+
+  // Use the `presentation` path so the verifier builds a proper DeviceResponse
+  // (with deviceSigned) that the Longfellow WASM can parse.
+  const presentation = {
+    raw_mdoc_b64: rawMdocB64,
+    device_private_jwk: binding && binding.devicePrivateJwk,
+    fields: attributes,
+    doctype: (binding && binding.doctype) || 'org.iso.18013.5.1.age_verification',
+    mdoc_generated_nonce: binding && binding.mdocGeneratedNonce,
+    client_id: binding && binding.clientId,
+    response_uri: binding && binding.responseUri,
+    verifier_nonce: nonce,
+    time: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
   };
-}
 
-async function generateProof(rawMdocB64, attributes, nonce, numDisclosed) {
-  const loaded = await tryLoadZenroom();
-  if (!loaded) {
-    return simulateProof(rawMdocB64, attributes, nonce);
+  const resp = await fetch(`${verifierBase}/generate-proof`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ presentation }),
+  });
+
+  if (!resp.ok) {
+    let msg;
+    try { msg = (await resp.json()).error; } catch { msg = await resp.text(); }
+    throw new Error(msg || `Proof generation failed (${resp.status})`);
   }
 
-  // Attempt real Zenroom / Longfellow call
-  try {
-    const circuitResp = await fetch(`/circuits/n${numDisclosed}.circuit`);
-    if (!circuitResp.ok) throw new Error('Circuit not found');
-    const circuitData = await circuitResp.text();
-
-    const { zencode_exec } = zenroomModule;
-
-    // Longfellow ZK prover script — replace script/data/keys with real values
-    // when the Longfellow zencode contract is available.
-    const result = await zencode_exec(circuitData, {
-      data: JSON.stringify({ mdoc: rawMdocB64, nonce, attributes }),
-      keys: null,
-    });
-
-    return {
-      proof: b64urlEncode(new TextEncoder().encode(result.result)),
-      disclosed: attributes,
-      simulated: false
-    };
-  } catch {
-    return simulateProof(rawMdocB64, attributes, nonce);
-  }
+  const data = await resp.json();
+  return { proof_json: data.proof_json, simulated: false };
 }
 
 // ─────────────────────────────────────────────────────────
@@ -831,15 +918,75 @@ async function approveAndSubmit() {
   const cred = creds.find(c => c.id === credId);
   if (!cred) { showMsg('vp-msg', 'Selected credential not found.', 'error'); return; }
 
+  // Pre-flight: enforce DIF PE filter constraints before wasting 30s on proof generation
+  const { requiredTrue } = getRequestedFields(vpParsed.presentation_definition);
+  const preflightFails = [...requiredTrue].filter(f => cred.fields?.[f] === false);
+  if (preflightFails.length > 0) {
+    showMsg('vp-msg',
+      `Cannot submit: your credential has ${preflightFails.join(', ')} = false, ` +
+      `but the verifier requires these to be true. Obtain a credential that satisfies the age requirements.`,
+      'error');
+    return;
+  }
+
   setLoading('btn-approve', true, 'Generating proof…');
   showMsg('vp-msg', '<span class="spinner"></span>Generating ZK proof…', 'info');
 
   try {
+    // Build a deterministic OID4VP session transcript that the device key
+    // signs. The verifier reconstructs the same bytes from its session
+    // record, so the signature binds this presentation to this verifier
+    // request. (This is a simplified binding, not the full ISO 18013-5
+    // SessionTranscript CBOR.)
+    const sortedFields = [...selectedFields].sort();
+    const doctype = cred.doctype || 'org.iso.18013.5.1.age_verification';
+    const transcriptInput = [
+      'oid4vp-age-v1',
+      vpParsed.client_id || '',
+      vpParsed.nonce,
+      vpParsed.response_uri,
+      doctype,
+      sortedFields.join(',')
+    ].join('|');
+    const transcriptBytes = new TextEncoder().encode(transcriptInput);
+    const transcriptDigest = new Uint8Array(
+      await crypto.subtle.digest('SHA-256', transcriptBytes)
+    );
+
+    let deviceSignatureB64 = null;
+    if (cred.device_private_jwk) {
+      try {
+        const sig = await signTranscriptWithDeviceKey(
+          cred.device_private_jwk,
+          transcriptDigest
+        );
+        deviceSignatureB64 = b64urlEncode(sig);
+      } catch (e) {
+        console.warn('Device signing failed:', e);
+      }
+    }
+
+    // mdocGeneratedNonce is a random value the holder supplies for the
+    // OID4VP SessionTranscript. Generate one fresh per presentation.
+    const mdocGeneratedNonce = b64urlEncode(
+      crypto.getRandomValues(new Uint8Array(16))
+    );
+
     const proofResult = await generateProof(
       cred.raw_mdoc_b64,
       selectedFields,
       vpParsed.nonce,
-      selectedFields.length
+      selectedFields.length,
+      {
+        deviceSignatureB64,
+        transcriptHex: hexFromBytes(transcriptDigest),
+        devicePublicJwk: cred.device_public_jwk,
+        devicePrivateJwk: cred.device_private_jwk,
+        doctype,
+        clientId: vpParsed.client_id || '',
+        responseUri: vpParsed.response_uri,
+        mdocGeneratedNonce,
+      }
     );
 
     showMsg('vp-msg', '<span class="spinner"></span>Submitting proof to verifier…', 'info');
@@ -851,11 +998,15 @@ async function approveAndSubmit() {
 
     const vpToken = {
       format: 'mso_mdoc_zk',
-      doctype: cred.doctype || 'org.iso.18013.5.1.age_verification',
-      proof: proofResult.proof,
+      doctype,
+      proof_json: proofResult.proof_json,
       disclosed_attributes,
+      disclosed_fields_sorted: sortedFields,
       nonce: vpParsed.nonce,
-      simulated: proofResult.simulated === true
+      device_signature: deviceSignatureB64,
+      device_public_jwk: cred.device_public_jwk || null,
+      transcript_digest_hex: hexFromBytes(transcriptDigest),
+      simulated: false
     };
 
     const presentationSubmission = {
@@ -875,9 +1026,7 @@ async function approveAndSubmit() {
       throw new Error(`Verifier rejected submission (${submitResp.status}): ${t}`);
     }
 
-    const proofBadge = proofResult.simulated
-      ? '<div class="proof-status proof-simulated">&#9888; Simulated proof — Zenroom not loaded</div>'
-      : '<div class="proof-status proof-real">&#10003; Real ZK proof generated</div>';
+    const proofBadge = '<div class="proof-status proof-real">&#10003; Real ZK proof generated (Longfellow)</div>';
 
     const disclosedList = selectedFields
       .map(f => `<li><strong>${f}</strong>: ${disclosed_attributes[f]}</li>`)

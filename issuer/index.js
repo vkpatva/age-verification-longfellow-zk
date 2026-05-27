@@ -6,6 +6,13 @@ const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const { Document, MDoc } = require('@auth0/mdl');
+const { setCborEncodeDecodeOptions, getCborEncodeDecodeOptions } = require('@auth0/mdl/lib/cbor');
+
+// Force canonical (preferred-serialization) CBOR encoding so that the
+// Longfellow ZK prover (strict canonical parser) can decode our DeviceResponse.
+// Default cbor-x emits map(uint16) (0xb9) even for tiny maps; canonical CBOR
+// requires the shortest length encoding (0xa0..0xa17 for ≤23 entries).
+setCborEncodeDecodeOptions({ ...getCborEncodeDecodeOptions(), variableMapSize: true });
 const { Crypto } = require('@peculiar/webcrypto');
 const { X509CertificateGenerator, X509Certificate } = require('@peculiar/x509');
 
@@ -50,6 +57,11 @@ async function initKeys() {
 
   issuerPrivateKeyJwk = await webcrypto.subtle.exportKey('jwk', keyPair.privateKey);
   issuerPublicKeyJwk = await webcrypto.subtle.exportKey('jwk', keyPair.publicKey);
+  // Set a kid; without it @auth0/mdl encodes the unprotected COSE header as
+  // {kid: undefined, x5chain: ...} which becomes CBOR `f7` (undefined) — a
+  // value Longfellow's strict CBOR parser rejects.
+  issuerPrivateKeyJwk.kid = 'issuer-1';
+  issuerPublicKeyJwk.kid = 'issuer-1';
 
   // Generate self-signed certificate for the issuer key
   const cert = await X509CertificateGenerator.createSelfSigned(
@@ -96,7 +108,7 @@ async function initKeys() {
 }
 
 // --- In-memory pre-auth code store ---
-// Map<code, { age, age_above_18, age_above_21, age_above_25, used }>
+// Map<code, { age, age_over_18, age_over_21, age_over_25, used }>
 const preAuthCodes = new Map();
 
 // --- Helpers ---
@@ -108,18 +120,30 @@ function deriveAgeFields(age) {
   };
 }
 
-async function buildMdoc(ageFields) {
+async function buildMdoc(ageFields, devicePublicKeyJwk) {
   const issuanceDate = new Date();
   const expiryDate = new Date(issuanceDate);
   expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-  // Dummy device key — in a real flow this comes from the wallet's proof
-  const deviceKeyPair = await webcrypto.subtle.generateKey(
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    true,
-    ['sign', 'verify']
-  );
-  const devicePublicKeyJwk = await webcrypto.subtle.exportKey('jwk', deviceKeyPair.publicKey);
+  // If the holder didn't supply a device key, generate a throwaway one so
+  // the demo still issues a credential. Real OID4VP flows require the
+  // holder-bound key to make device authentication verifiable.
+  if (!devicePublicKeyJwk) {
+    const deviceKeyPair = await webcrypto.subtle.generateKey(
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
+      ['sign', 'verify']
+    );
+    devicePublicKeyJwk = await webcrypto.subtle.exportKey('jwk', deviceKeyPair.publicKey);
+  }
+  // Keep only canonical COSE-relevant fields so the MSO deviceKey is the exact
+  // 4-entry map (kty, crv, x, y) Longfellow's circuit expects.
+  devicePublicKeyJwk = {
+    kty: devicePublicKeyJwk.kty,
+    crv: devicePublicKeyJwk.crv,
+    x: devicePublicKeyJwk.x,
+    y: devicePublicKeyJwk.y,
+  };
 
   const document = await new Document('org.iso.18013.5.1.age_verification')
     .addIssuerNameSpace('org.iso.18013.5.1', {
@@ -127,8 +151,8 @@ async function buildMdoc(ageFields) {
       age_above_21: ageFields.age_above_21,
       age_above_25: ageFields.age_above_25,
       issuer_country: 'IN',
-      issuance_date: issuanceDate.toISOString(),
-      expiry_date: expiryDate.toISOString(),
+      issuance_date: issuanceDate,
+      expiry_date: expiryDate,
     })
     .useDigestAlgorithm('SHA-256')
     .addValidityInfo({
@@ -225,7 +249,7 @@ app.post('/credential', async (req, res) => {
     return res.status(401).json({ error: 'invalid_token', error_description: err.message });
   }
 
-  const { format } = req.body;
+  const { format, device_public_key_jwk } = req.body;
   if (format && format !== 'mso_mdoc') {
     return res.status(400).json({ error: 'unsupported_credential_format' });
   }
@@ -233,7 +257,7 @@ app.post('/credential', async (req, res) => {
   try {
     const issuanceDate = new Date().toISOString();
     const expiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-    const credential = await buildMdoc(payload.ageFields);
+    const credential = await buildMdoc(payload.ageFields, device_public_key_jwk);
     res.json({
       format: 'mso_mdoc',
       credential,
@@ -347,9 +371,9 @@ app.get('/', (req, res) => {
 
         const f = data.age_fields;
         document.getElementById('ageFields').innerHTML =
-          '<span>age≥18: ' + f.age_above_18 + '</span>' +
-          '<span>age≥21: ' + f.age_above_21 + '</span>' +
-          '<span>age≥25: ' + f.age_above_25 + '</span>';
+          '<span>age≥18: ' + f.age_over_18 + '</span>' +
+          '<span>age≥21: ' + f.age_over_21 + '</span>' +
+          '<span>age≥25: ' + f.age_over_25 + '</span>';
 
         result.style.display = 'block';
       } catch (e) {
